@@ -32,10 +32,14 @@ test("nom du programme lu à la position 116 (Trigon-6)", () => {
   assert.equal(run("extractName(d)"), "Let It Go Bassline");
 });
 
-test("nom introuvable : chaîne vide plutôt qu'une erreur", () => {
-  ctx.d = new Uint8Array(1024);
+test("Prophet-6 : nom à la position 107, chaîne vide si absent", () => {
+  const d = new Uint8Array(1024);
+  ctx.d = d;
   run('synth = "Prophet-6"');
   assert.equal(run("extractName(d)"), "");
+  "Smooth Wurl".split("").forEach((c, i) => { d[107 + i] = c.charCodeAt(0); });
+  for (let i = 107 + 11; i < 127; i++) d[i] = 32;
+  assert.equal(run("extractName(d)"), "Smooth Wurl", "Prophet-6 : nom à la position 107");
 });
 
 test("empreinte : 16 caractères hexadécimaux, stable", async () => {
@@ -45,7 +49,7 @@ test("empreinte : 16 caractères hexadécimaux, stable", async () => {
   assert.equal(a, b);
 });
 
-for (const [name, nameAt] of [["Trigon-6", 116], ["Prophet-6", 236]]) {
+for (const [name, nameAt] of [["Trigon-6", 116], ["Prophet-6", 107]]) {
   test(`façade ${name} : définitions cohérentes`, () => {
     const ctrls = run(`allCtrls(LAYOUTS["${name}"])`);
     const ids = ctrls.map(c => c.id);
@@ -66,9 +70,11 @@ for (const [name, nameAt] of [["Trigon-6", 116], ["Prophet-6", 236]]) {
   });
 }
 
-test("façade Trigon-6 : réglages vérifiés sur la machine", () => {
-  const live = run('allCtrls(LAYOUTS["Trigon-6"]).filter(c => c.off !== undefined && c.cc !== undefined).length');
-  assert.equal(live, 30, "réglages pilotables vérifiés sur la machine");
+test("façades : réglages vérifiés sur les machines", () => {
+  for (const [name, n] of [["Trigon-6", 30], ["Prophet-6", 35]]) {
+    const live = run(`allCtrls(LAYOUTS["${name}"]).filter(c => c.off !== undefined && c.cc !== undefined).length`);
+    assert.equal(live, n, `${name} : réglages pilotables vérifiés`);
+  }
   assert.ok(run('allCtrls(LAYOUTS["Trigon-6"]).some(c => c.id === "fx.b.mix")'), "potards des effets A et B");
 });
 

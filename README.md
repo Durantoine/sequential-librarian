@@ -24,7 +24,8 @@ _Captures en mode démo (synthé simulé)._
 Elle reprend la disposition du synthé. Un réglage allumé suit le son en cours ; s'il est pilotable, on le tourne à la souris (glisser verticalement, Maj pour un réglage fin, molette) et le synthé suit.
 
 - **Trigon-6** : 30 réglages sont reliés d'avance, vérifiés sur la machine (le Trigon-6 ne reçoit qu'une partie de ses réglages en CC). Les autres sont grisés : clique un réglage grisé, puis touche le même sur le synthé, et l'app repère où il est rangé. Il s'affiche alors, et devient pilotable s'il existe un CC pour lui. ⌥ clic pour oublier un lien.
-- **Prophet-6** : les réglages viennent du manuel (NRPN et CC). Au premier affichage, le bouton « Vérifier sur le synthé » les teste un par un sur la machine (valeur de test, relecture, puis retour au son d'origine) et n'affiche que ceux qui sont confirmés.
+- **Prophet-6** : même façade dessinée d'après la machine, 35 réglages pilotables relevés sur un Prophet-6 réel (le manuel donne d'autres positions, inexactes). Les autres se relient comme sur le Trigon-6.
+- Le bouton « Revérifier sur le synthé » teste chaque réglage sur ta machine (valeur de test, relecture, puis retour au son d'origine) et retient les positions trouvées.
 
 Un device **Max for Live** affiche aussi le preset en cours dans Ableton Live, et ouvre l'application.
 
@@ -49,7 +50,7 @@ Il faut macOS 12 ou plus récent et les outils de développement d'Apple (Xcode 
    make device
    ```
 
-3. Sur le synthé : **GLOBALS**, réglage **MIDI SysEx = USB**. Pour la façade du Trigon-6 : **Param Rcv = CC**.
+3. Sur le synthé : **GLOBALS**, réglage **MIDI SysEx = USB**. Pour la façade : **Param Rcv = CC**.
 
 ## Développement
 
@@ -88,4 +89,4 @@ SP_DATA_DIR=/tmp/essai "/Applications/Sequential Librarian.app/Contents/MacOS/Se
 - Programme : `F0 01 id 05 banque prog F7` ; réponse de 1171 octets compressés (1024 décompressés).
 - Son en cours : `F0 01 id 06 F7` ; écriture d'un programme : `F0 01 id 02 banque prog [données] F7`.
 - Nom du programme (Trigon-6) : 20 caractères ASCII à la position 116 des données décompressées.
-- La façade n'affiche que les réglages dont la position dans les données a été vérifiée sur un Trigon-6 réel, en envoyant chaque CC et en relisant le son en cours. La position du nom sur le Prophet-6 n'est pas encore vérifiée : le renommage y est désactivé.
+- La façade ne pilote que les réglages dont la position dans les données a été vérifiée sur un Trigon-6 et un Prophet-6 réels, en envoyant chaque CC et en relisant le son en cours. Le nom est à l'octet 116 sur le Trigon-6 et 107 sur le Prophet-6 (vérifié sur les 1000 programmes).

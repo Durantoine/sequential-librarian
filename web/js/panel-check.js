@@ -24,16 +24,21 @@ function detectOffset(c, method, before, after, want) {
 }
 const canSend = (c, m) => m === "nrpn" ? c.nrpn !== undefined : c.cc !== undefined && c.kind !== "display";
 
+// Deux valeurs de test : si la première tombe sur la valeur déjà en place (position du
+// manuel inexacte), la seconde fait bouger l'octet.
 async function tryCtrl(c, method, base) {
-  const want = testValue(c, base[c.off ?? 0]);
-  conn.output.send(ctrlMessage(c, want, method, live.chan || 0));
-  await sleep(140);
-  const m = await requestEditBuffer(1500);
-  const after = unpack(m.subarray(4, m.length - 1));
-  const at = detectOffset(c, method, base, after, want);
-  // on remet le son d'origine avant le réglage suivant, pour tester toujours depuis le même son
-  if (!after.every((v, i) => v === base[i])) await restoreEditBuffer(baseMsg);
-  return at;
+  const first = testValue(c, base[c.off ?? 0]);
+  for (const want of [first, testValue(c, first)]) {
+    conn.output.send(ctrlMessage(c, want, method, live.chan || 0));
+    await sleep(140);
+    const m = await requestEditBuffer(1500);
+    const after = unpack(m.subarray(4, m.length - 1));
+    const at = detectOffset(c, method, base, after, want);
+    // on remet le son d'origine avant l'essai suivant, pour tester toujours depuis le même son
+    if (!after.every((v, i) => v === base[i])) await restoreEditBuffer(baseMsg);
+    if (at >= 0) return at;
+  }
+  return -1;
 }
 
 async function checkPanel() {
@@ -57,8 +62,8 @@ async function checkPanel() {
     }
     if (!method) throw new Error(`aucun réglage confirmé : vérifie GLOBALS > Param Rcv sur le ${synth}`);
     const n = Object.keys(at).length, moved = list.filter(c => at[c.id] !== undefined && c.off !== undefined && at[c.id] !== c.off).length;
-    if (!layout().fixed) {
-      db.panelCheck = { date: new Date().toISOString(), method, at, fail };
+    db.panelCheck = { date: new Date().toISOString(), method, at, fail };
+    {
       // Le manuel du Prophet-6 place le nom en NRPN 236 à 255 : on le confirme de la même façon.
       const nameAt = method === "nrpn" && synth === "Prophet-6" ? await tryCtrl({ kind: "knob", off: 236, nrpn: 236, min: 32, max: 125 }, "nrpn", base) : -1;
       if (nameAt >= 0) { db.panelCheck.nameAt = nameAt; NAME_AT[synth] = nameAt; }

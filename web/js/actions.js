@@ -39,6 +39,7 @@ async function renameOnSynth(k, wanted) {
   });
   if (!ok) return;
   busy = true; setBusyUi(true); setProgressText(`Renommage de ${k}…`);
+  let editBuffer = null;
   try {
     await readSlot(b, p);                                   // 1. état actuel
     const before = raw.get(k);
@@ -50,6 +51,7 @@ async function renameOnSynth(k, wanted) {
     const target = clean.padEnd(20, " ");
     for (let i = 0; i < 20; i++) data[at + i] = target.charCodeAt(i);
     const wasProtected = s.protected;
+    editBuffer = await requestEditBuffer();                 // écrire un programme remplace le son en cours
     await writeVerified(k, data);                           // 4. écriture et relecture
     const m = raw.get(k);
     if (s.synthName !== clean) throw new Error("nom relu différent");
@@ -59,6 +61,7 @@ async function renameOnSynth(k, wanted) {
   } catch (e) {
     toast(`Renommage non confirmé : ${e.message}. L'original est dans Sauvegardes/.`);
   }
+  try { await restoreEditBuffer(editBuffer); } catch { /* le son en cours reste le preset renommé */ }
   busy = false; setBusyUi(false); render(); scheduleSave();
 }
 

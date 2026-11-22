@@ -9,7 +9,7 @@ outlets = 5;
 
 var VAULT = "__VAULT__/";   // remplacé par build_device.py (config.json)
 var SYNTHS = ["Trigon-6", "Prophet-6"];
-var NAME_AT = { "Trigon-6": 116, "Prophet-6": null };
+var NAME_AT = { "Trigon-6": 116, "Prophet-6": 107 };
 var INIT_NAME = "Basic Program";
 var GREY = [0.49, 0.5, 0.54, 1], AMBER = [0.82, 0.6, 0.13, 1], RED = [0.97, 0.32, 0.29, 1];
 

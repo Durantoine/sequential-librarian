@@ -4,7 +4,7 @@
 "use strict";
 
 const layout = () => LAYOUTS[synth];
-const panelMethod = () => layout()?.fixed || db?.panelCheck?.method || null;
+const panelMethod = () => db?.panelCheck?.method || layout()?.fixed || null;
 const panelChecked = () => !!panelMethod();
 let fxSide = "a";          // effet affiché par les potards de la section Effets (comme le bouton A/B)
 let learning = null;       // { id, base, cand, hits, t0 } pendant un apprentissage
@@ -27,10 +27,10 @@ const byId = id => allCtrls().find(c => c.id === id);
 function resolve(c) {
   if (!c?.id || c.kind === "deco") return null;
   if (c.of) { const t = resolve(byId(c.of)); return t && { ...c, off: t.off, send: false }; }
-  const L = layout(), learned = db?.panelLearn?.[c.id];
-  if (L.fixed && c.off !== undefined) return { ...c, send: c.cc !== undefined && c.kind !== "display" };
-  const at = db?.panelCheck?.at?.[c.id];
-  if (!L.fixed && at !== undefined) return { ...c, off: at, send: c.kind !== "display" };
+  const L = layout(), learned = db?.panelLearn?.[c.id], check = db?.panelCheck;
+  // une vérification faite sur ce synthé prime sur les positions connues d'avance
+  if (check?.at?.[c.id] !== undefined) return { ...c, off: check.at[c.id], send: c.kind !== "display" && (check.method === "nrpn" ? c.nrpn !== undefined : c.cc !== undefined) };
+  if (!check && L.fixed && c.off !== undefined) return { ...c, send: c.cc !== undefined && c.kind !== "display" };
   if (learned !== undefined) {
     const cc = L.fixed ? L.ccAt?.[learned] : undefined;
     return { ...c, off: learned, cc, nrpn: undefined, send: cc !== undefined, learned: true };
@@ -123,6 +123,7 @@ function renderPanel() {
       ${L.blocks.map(b => `<section class="hw-blk" ${b.area ? `style="grid-area:${b.area}"` : ""}>${b.t ? `<h4>${b.t}</h4>` : ""}${b.rows.map(r => `<div class="hw-row">${r.map(x => ctrlHtml(x, d)).join("")}</div>`).join("")}</section>`).join("")}
     </div></div>
     <div class="fp-foot"><span>Glisser verticalement · Maj pour un réglage fin · molette</span>
+      ${conn?.mode === "midi" && !busy && layout().fixed ? `<button class="btn sm ghost" id="fpCheck" title="Teste chaque réglage sur ce synthé et relève sa position">Revérifier sur le synthé</button>` : ""}
       <span>Les réglages grisés ne sont pas encore reliés : clique-les, puis touche le même réglage sur le synthé.</span></div>
   </div>`;
   if (!on && !conn) el.querySelector(".fp-scale").insertAdjacentHTML("beforebegin", `<div class="fp-empty">Allume le ${synth} et branche-le en USB : la façade affichera le son en cours.</div>`);

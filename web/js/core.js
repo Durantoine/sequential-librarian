@@ -8,8 +8,9 @@ const SYNTHS = {
   "Prophet-6": { match: /prophet\s*-?\s*6/i, expectId: 0x2D },
 };
 // Nom du programme : 20 caractères ASCII dans les données décompressées.
-// Trigon-6 : position 116 (vérifiée sur la machine). Prophet-6 : recherche automatique, renommage désactivé.
-const NAME_AT = { "Trigon-6": 116, "Prophet-6": null };
+// Positions vérifiées sur les machines : Trigon-6 116, Prophet-6 107 (nom trouvé à cette place
+// dans les 1000 programmes lus ; le manuel indique 236, à tort).
+const NAME_AT = { "Trigon-6": 116, "Prophet-6": 107 };
 const INIT_NAME = "Basic Program";
 const TYPES = ["pad", "lead", "basse", "keys", "brass", "cordes", "pluck", "arp", "fx", "percu", "autre"];
 const $ = id => document.getElementById(id);
