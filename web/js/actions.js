@@ -9,6 +9,18 @@ async function sendProgram(b, p, data) {
   if (conn.mode === "demo") { demoState.written.set(keyOf(b, p), Uint8Array.from(data)); return; }
   conn.output.send([0xF0, 0x01, conn.id, 0x02, b, p, ...packData(data), 0xF7]);
 }
+// Écrit puis relit un programme ; un second essai si la relecture diffère.
+async function writeVerified(k, data) {
+  const b = +k[0], p = +k.slice(1);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await sendProgram(b, p, data);
+    if (conn.mode !== "demo") await sleep(450);
+    await readSlot(b, p);
+    const after = unpack(raw.get(k).subarray(6, raw.get(k).length - 1));
+    if (after.length === data.length && after.every((v, i) => v === data[i])) return after;
+  }
+  throw new Error(`écriture de ${k} non confirmée`);
+}
 const asciiName = t => t.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\x20-\x7E]/g, "").slice(0, 20).trimEnd();
 const canRename = () => conn && !busy && NAME_AT[synth] !== null && NAME_AT[synth] !== undefined;
 
@@ -37,13 +49,10 @@ async function renameOnSynth(k, wanted) {
     const data = unpack(before.subarray(6, before.length - 1));   // 3. nouveau nom, rien d'autre
     const target = clean.padEnd(20, " ");
     for (let i = 0; i < 20; i++) data[at + i] = target.charCodeAt(i);
-    await sendProgram(b, p, data);                          // 4. écriture
-    await sleep(500);
     const wasProtected = s.protected;
-    await readSlot(b, p);                                   // 5. vérification
-    const m = raw.get(k), after = unpack(m.subarray(6, m.length - 1));
-    const diffs = data.reduce((n, v, i) => n + (after[i] !== v ? 1 : 0), 0);
-    if (s.synthName !== clean || diffs) throw new Error(`relecture différente (${diffs} octet(s))`);
+    await writeVerified(k, data);                           // 4. écriture et relecture
+    const m = raw.get(k);
+    if (s.synthName !== clean) throw new Error("nom relu différent");
     if (wasProtected) { s.protectedHash = s.hash; s.protectedRaw = b64(m); s.protectedAt = new Date().toISOString(); s.alert = false; }
     delete s.changedAt;
     toast(`${k} s'appelle maintenant « ${clean} » sur le synthé`);
@@ -101,9 +110,7 @@ async function saveCurrent() {
   busy = true; setBusyUi(true); setProgressText(`Sauvegarde dans ${k}…`);
   try {
     // 1. son en cours, lu à l'instant
-    const r = waitFor(d => d[0] === 0xF0 && d[1] === 0x01 && d[2] === conn.id && d[3] === 0x03, 2000);
-    conn.output.send([0xF0, 0x01, conn.id, 0x06, 0xF7]);
-    const eb = await r;
+    const eb = await requestEditBuffer();
     const data = unpack(eb.subarray(4, eb.length - 1));
     if (data.length !== 1024) throw new Error("son en cours illisible");
     if (canName && wanted) { const t = wanted.padEnd(20, " "); for (let i = 0; i < 20; i++) data[NAME_AT[synth] + i] = t.charCodeAt(i); }
@@ -114,13 +121,9 @@ async function saveCurrent() {
     if (!j) throw new Error("copie de sécurité impossible, rien n'a été écrit");
     db.backups.push({ date: new Date().toISOString(), file: j.name, label: `${k} avant sauvegarde`, count: 1 });
     // 3. écriture, puis relecture
-    await sendProgram(b, p, data);
-    await sleep(700);
     const wasProtected = old.protected;
-    await readSlot(b, p);
-    const m = raw.get(k), after = unpack(m.subarray(6, m.length - 1));
-    const diffs = data.reduce((n, v, i) => n + (after[i] !== v ? 1 : 0), 0);
-    if (diffs) throw new Error(`relecture différente (${diffs} octet(s))`);
+    const after = await writeVerified(k, data);
+    const m = raw.get(k);
     const s = slot(k);
     if (wasProtected) { s.protectedHash = s.hash; s.protectedRaw = b64(m); s.protectedAt = new Date().toISOString(); s.alert = false; }
     delete s.changedAt;

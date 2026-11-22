@@ -37,6 +37,18 @@ async function requestProgram(b, p) {
   }
   throw new Error(`pas de réponse pour ${keyOf(b, p)}`);
 }
+// Son en cours (edit buffer) : message 0x03 complet, renvoyable tel quel pour le restaurer.
+async function requestEditBuffer(ms = 2000) {
+  if (conn.mode === "demo") return demoEditBuffer();
+  const reply = waitFor(d => d[0] === 0xF0 && d[1] === 0x01 && d[2] === conn.id && d[3] === 0x03, ms);
+  conn.output.send([0xF0, 0x01, conn.id, 0x06, 0xF7]);
+  return reply;
+}
+async function restoreEditBuffer(msg) {
+  if (conn.mode === "demo" || !msg) return;
+  conn.output.send(Array.from(msg));
+  await sleep(200);
+}
 async function readSlot(b, p) {
   const msg = await requestProgram(b, p);
   const data = unpack(msg.subarray(6, msg.length - 1));

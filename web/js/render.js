@@ -91,12 +91,13 @@ function renderGrid() {
   // Grille
   const q = $("search").value.trim().toLowerCase();
   let html = "";
+  const drag = canReorder() && isUser(bank);
   for (let p = 0; p < 100; p++) {
     const k = keyOf(bank, p), s = db.slots[k];
     const empty = isEmpty(s);
     const cls = ["cell", !s?.hash && "unread", empty && "empty", s?.alert && "alert", k === selected && "sel", q && !matches(s, q) && "dim"].filter(Boolean).join(" ");
     const label = s?.name || (empty ? "sans nom" : s?.synthName || "");
-    html += `<div class="${cls}" data-k="${k}"><div class="num">${k}` +
+    html += `<div class="${cls}" data-k="${k}" draggable="${drag}"><div class="num">${k}` +
       (recent(s?.changedAt) && !s?.alert ? `<span class="chg" title="Changé depuis la lecture précédente"></span>` : "") +
       (factoryCopy(k, s) ? `<span class="tag" title="Identique au preset d'usine ${+k[0] + 5}${k.slice(1)}">usine</span>` : "") +
       (s?.protected ? `<span class="lock">${icon("lock")}</span>` : "") +
@@ -145,7 +146,7 @@ function renderDetail() {
     <div class="field">
       <label>Nom sur le synthé</label>
       <div class="inrow"><input type="text" id="fSynthName" maxlength="20" value="${escapeHtml(empty ? "" : s.synthName || "")}" placeholder="${empty ? "Donne-lui un nom" : ""}" ${renameOk ? "" : "disabled"}>
-      <button class="btn primary" id="fRename" ${renameOk ? "" : "disabled"}>${icon("pen")}Écrire</button></div>
+      <button class="btn primary" id="fRename" ${renameOk ? "" : "disabled"} title="Change seulement le nom. Pour garder tes réglages, utilise Sauver en haut.">${icon("pen")}Renommer</button></div>
       <div class="sub" id="fRenameHint">${renameWhy}</div>
     </div>
 

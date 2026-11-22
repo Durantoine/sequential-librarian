@@ -31,13 +31,7 @@ async function pollEditBuffer() {
   if (document.hidden && Date.now() - live.last < 5000) return;   // fenêtre cachée : on relit moins souvent
   live.polling = true; live.last = Date.now();
   try {
-    let msg;
-    if (conn.mode === "demo") msg = await demoEditBuffer();
-    else {
-      const r = waitFor(d => d[0] === 0xF0 && d[1] === 0x01 && d[2] === conn.id && d[3] === 0x03, 1500);
-      conn.output.send([0xF0, 0x01, conn.id, 0x06, 0xF7]);
-      msg = await r;
-    }
+    const msg = await requestEditBuffer(1500);
     const data = unpack(msg.subarray(4, msg.length - 1));
     const h = await hashOf(data), name = extractName(data);
     const prevSlot = live.slot, changed = h !== live.hash || !live.ok;

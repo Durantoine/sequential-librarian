@@ -31,4 +31,5 @@ document.body.classList.toggle("v-panel", view === "panel" && !!PANELS[synth]);
 if (!PANELS[synth]) view = "grid";
 // Signal de vie pour le serveur de développement (il s'arrête seul sans fenêtre ouverte).
 setInterval(() => fetch("/api/ping").catch(() => {}), 20000);
+initReorder();
 loadDb().then(() => { render(); autoConnect(); });
