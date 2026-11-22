@@ -11,6 +11,7 @@ async function loadDb() {
     const j = await r.json();
     db = j && j.slots ? j : emptyDb();
     db.backups ||= [];
+    if (db.panelCheck?.nameAt !== undefined) NAME_AT[synth] = db.panelCheck.nameAt;   // nom confirmé par la vérification
   } catch { db = emptyDb(); toast("Dossier de données inaccessible : vérifie dataDir dans config.json"); }
 }
 function slot(k) { return db.slots[k] || (db.slots[k] = {}); }

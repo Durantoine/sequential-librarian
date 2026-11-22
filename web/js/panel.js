@@ -1,10 +1,16 @@
-// Façade du Trigon-6 : potards synchronisés avec le son en cours.
+// Façades du Trigon-6 et du Prophet-6 : potards synchronisés avec le son en cours.
 "use strict";
 
-/* ---------- Façade ---------- */
-// Réglages du Trigon-6 dont la place dans les données a été vérifiée sur la machine :
-// chaque CC envoyé modifie exactement l'octet indiqué du son en cours.
-// k : potard (max = valeur maxi, enum = la valeur CC est la valeur elle-même), s : interrupteur, o : sélecteur, r : affichage seul.
+/* ---------- Définitions ---------- */
+// off : octet du son en cours (données décompressées), cc / nrpn : message qui le modifie.
+// k : potard (max = valeur maxi, enum = la valeur CC est la valeur elle-même, bi = centré),
+// s : interrupteur, o : sélecteur, r : affichage seul.
+//
+// Trigon-6 : chaque réglage a été vérifié une fois pour toutes sur la machine (CC uniquement).
+// Prophet-6 : positions et numéros tirés du manuel (annexe C, octet = numéro NRPN) ; l'app les
+// vérifie sur le synthé avant de les afficher (panel-check.js).
+const PANEL_FIXED = { "Trigon-6": "cc" };   // synthé -> méthode d'envoi déjà vérifiée
+const P6_FX_A = ["Off", "BBD", "DDL", "Chorus", "Phaser H", "Phaser L"];
 const PANELS = {
   "Trigon-6": [
     { t: "Mixeur", c: [
@@ -38,8 +44,108 @@ const PANELS = {
       { r: "BPM", off: 98 },
     ] },
   ],
+  "Prophet-6": [
+    { t: "Oscillateur 1", c: [
+      { k: "Freq", off: 0, max: 60, cc: 67, nrpn: 0 },
+      { k: "Shape", off: 3, max: 254, cc: 70, nrpn: 3 },
+      { k: "Pulse W", off: 4, max: 255, cc: 71, nrpn: 4 },
+      { s: "Sync", off: 1, nrpn: 1 },
+    ] },
+    { t: "Oscillateur 2", c: [
+      { k: "Freq", off: 5, max: 60, cc: 75, nrpn: 5 },
+      { k: "Fine", off: 6, max: 254, cc: 76, nrpn: 6, bi: 1 },
+      { k: "Shape", off: 8, max: 254, cc: 78, nrpn: 8 },
+      { k: "Pulse W", off: 9, max: 255, cc: 79, nrpn: 9 },
+      { s: "Low freq", off: 10, nrpn: 10 },
+      { s: "Key", off: 11, nrpn: 11 },
+    ] },
+    { t: "Mixeur", c: [
+      { k: "Osc 1", off: 2, max: 127, cc: 69, nrpn: 2 },
+      { k: "Osc 2", off: 7, max: 127, cc: 77, nrpn: 7 },
+      { k: "Sub", off: 27, max: 127, cc: 8, nrpn: 27 },
+      { k: "Noise", off: 32, max: 127, nrpn: 32 },
+    ] },
+    { t: "Passe-bas", c: [
+      { k: "Cutoff", off: 45, max: 164, cc: 102, nrpn: 45, big: 1 },
+      { k: "Résonance", off: 46, max: 255, cc: 103, nrpn: 46, big: 1 },
+      { k: "Env. amt", off: 77, max: 254, cc: 47, nrpn: 77, bi: 1 },
+      { o: "Clavier", off: 47, cc: 104, nrpn: 47, opts: ["Off", "½", "Full"] },
+      { s: "Vélocité", off: 48, cc: 105, nrpn: 48 },
+    ] },
+    { t: "Passe-haut", c: [
+      { k: "Cutoff", off: 49, max: 164, cc: 106, nrpn: 49 },
+      { k: "Résonance", off: 50, max: 255, cc: 107, nrpn: 50 },
+      { k: "Env. amt", off: 82, max: 254, cc: 54, nrpn: 82, bi: 1 },
+      { o: "Clavier", off: 51, cc: 108, nrpn: 51, opts: ["Off", "½", "Full"] },
+      { s: "Vélocité", off: 52, cc: 109, nrpn: 52 },
+    ] },
+    { t: "Enveloppe filtre", c: [
+      { k: "Attack", off: 78, max: 127, cc: 50, nrpn: 78 }, { k: "Decay", off: 79, max: 127, cc: 51, nrpn: 79 },
+      { k: "Sustain", off: 80, max: 127, cc: 52, nrpn: 80 }, { k: "Release", off: 81, max: 127, cc: 53, nrpn: 81 },
+    ] },
+    { t: "Ampli", c: [
+      { k: "Env. amt", off: 66, max: 127, cc: 40, nrpn: 66 },
+      { k: "Attack", off: 67, max: 127, cc: 43, nrpn: 67 }, { k: "Decay", off: 68, max: 127, cc: 44, nrpn: 68 },
+      { k: "Sustain", off: 69, max: 127, cc: 45, nrpn: 69 }, { k: "Release", off: 70, max: 127, cc: 46, nrpn: 70 },
+      { s: "Vélocité", off: 71, cc: 41, nrpn: 71 },
+    ] },
+    { t: "LFO", c: [
+      { k: "Freq", off: 88, max: 254, nrpn: 88 },
+      { k: "Amount", off: 89, max: 255, nrpn: 89 },
+      { o: "Forme", off: 90, nrpn: 90, opts: ["Tri", "Saw", "RSaw", "Sqr", "Rnd"] },
+      { s: "Sync", off: 91, nrpn: 91 },
+      { s: "→ Freq 1", off: 93, nrpn: 93 }, { s: "→ Freq 2", off: 94, nrpn: 94 }, { s: "→ PW", off: 95, nrpn: 95 },
+      { s: "→ Ampli", off: 96, nrpn: 96 }, { s: "→ Passe-bas", off: 97, nrpn: 97 }, { s: "→ Passe-haut", off: 98, nrpn: 98 },
+    ] },
+    { t: "Poly Mod", c: [
+      { k: "Env. filtre", off: 143, max: 254, nrpn: 143, bi: 1 },
+      { k: "Osc 2", off: 144, max: 254, nrpn: 144, bi: 1 },
+      { s: "→ Freq 1", off: 145, nrpn: 145 }, { s: "→ Shape 1", off: 146, nrpn: 146 }, { s: "→ PW 1", off: 147, nrpn: 147 },
+      { s: "→ Passe-bas", off: 148, nrpn: 148 }, { s: "→ Passe-haut", off: 149, nrpn: 149 },
+    ] },
+    { t: "Glide", c: [
+      { k: "Rate", off: 30, max: 127, nrpn: 30 },
+      { o: "Mode", off: 28, cc: 5, nrpn: 28, opts: ["FR", "FRA", "FT", "FTA"] },
+      { s: "On", off: 29, cc: 65, nrpn: 29 },
+    ] },
+    { t: "Effets", c: [
+      { s: "On", off: 135, nrpn: 135 },
+      { o: "A", off: 119, nrpn: 119, opts: P6_FX_A },
+      { k: "Mix A", off: 120, max: 127, nrpn: 120 },
+      { k: "Param 1 A", off: 121, max: 255, nrpn: 121 },
+      { k: "Param 2 A", off: 122, max: 127, nrpn: 122 },
+      { k: "Type B", off: 127, max: 9, nrpn: 127, enum: 1 },
+      { k: "Mix B", off: 128, max: 127, nrpn: 128 },
+      { k: "Param 1 B", off: 129, max: 255, nrpn: 129 },
+      { k: "Param 2 B", off: 130, max: 127, nrpn: 130 },
+    ] },
+    { t: "Divers", c: [
+      { k: "Distorsion", off: 64, max: 127, cc: 9, nrpn: 64 },
+      { k: "Slop", off: 33, max: 127, nrpn: 33 },
+      { s: "Unison", off: 156, nrpn: 156 },
+    ] },
+    { t: "Arpégiateur", c: [
+      { s: "On", off: 160, cc: 58, nrpn: 160 },
+      { o: "Mode", off: 161, cc: 59, nrpn: 161, opts: ["1", "2", "3", "4", "5"] },
+      { o: "Octaves", off: 162, cc: 60, nrpn: 162, opts: ["1", "2", "3"] },
+      { k: "Division", off: 163, max: 9, cc: 62, nrpn: 163, enum: 1 },
+      { r: "BPM", off: 167, nrpn: 167, min: 30, max: 250 },
+    ] },
+  ],
 };
-const ctrls = () => (PANELS[synth] || []).flatMap(sec => sec.c);
+
+/* ---------- Réglages utilisables ---------- */
+// Méthode d'envoi (« cc » ou « nrpn ») : connue d'avance, ou trouvée par la vérification.
+const panelMethod = () => PANEL_FIXED[synth] || db?.panelCheck?.method || null;
+const panelChecked = () => !!panelMethod();
+// Avant vérification : tous les réglages, sans valeurs. Après : ceux confirmés, à leur place relevée.
+function effective(c) {
+  if (PANEL_FIXED[synth] || !panelChecked()) return c;
+  const at = db.panelCheck.at?.[c.off];
+  return at === undefined ? null : { ...c, off: at };
+}
+const panelSections = () => (PANELS[synth] || []).map(sec => ({ t: sec.t, c: sec.c.map(effective).filter(Boolean) })).filter(sec => sec.c.length);
+const ctrls = () => panelSections().flatMap(sec => sec.c);
 function setView(v) {
   if (v === "panel" && !PANELS[synth]) v = "grid";
   view = v; savePref("view", v);
@@ -75,10 +181,11 @@ function renderPanel() {
   const el = $("panel");
   const P = PANELS[synth];
   if (!P) { el.innerHTML = ""; return; }
+  const checked = panelChecked();
   const on = !!conn && live.ok && !!live.data;
-  const d = on ? live.data : null;
+  const d = on && checked ? live.data : null;
   let i = 0;
-  el.innerHTML = `<div class="fp ${on ? "" : "off"}">
+  el.innerHTML = `<div class="fp ${on ? "" : "off"} ${checked ? "" : "unchecked"}">
     <div class="fp-head">
       <div class="fp-logo">${synth.toUpperCase()}<small>SON EN COURS</small></div>
       <div class="fp-led"><span class="d ${on ? "" : "off"}">${on ? (live.slot || "···") : "–––"}</span>
@@ -86,13 +193,15 @@ function renderPanel() {
         ${on && live.edited ? `<span class="pill amber">modifié</span>` : ""}</div>
       <button class="btn sm" id="fpSave" ${on && conn.mode === "midi" && !busy ? "" : "disabled"}>${icon("save")}Sauver</button>
     </div>
-    <div class="fp-body">${P.map(sec => `<div class="fp-sec"><h4>${sec.t}</h4><div class="fp-row">${sec.c.map(c => ctrlHtml(c, i++, d)).join("")}</div></div>`).join("")}</div>
+    ${panelNotice()}
+    <div class="fp-body">${panelSections().map(sec => `<div class="fp-sec"><h4>${sec.t}</h4><div class="fp-row">${sec.c.map(c => ctrlHtml(c, i++, d)).join("")}</div></div>`).join("")}</div>
     <div class="fp-foot"><span>Tourne un potard ici ou sur le synthé : les deux restent synchronisés.</span><span>Glisser verticalement · Maj pour un réglage fin · molette</span>
-    <span>Seuls les réglages vérifiés sur ton Trigon-6 sont affichés.</span></div>
+    <span>Seuls les réglages vérifiés sur ton ${synth} sont affichés.</span></div>
   </div>`;
   if (!on && !conn) el.querySelector(".fp-body").insertAdjacentHTML("beforebegin", `<div class="fp-empty">Allume le ${synth} et branche-le en USB : la façade affichera le son en cours.</div>`);
   $("fpSave").onclick = saveCurrent;
-  bindPanel();
+  $("fpCheck") && ($("fpCheck").onclick = checkPanel);
+  if (checked) bindPanel();
 }
 function updatePanel() {
   const el = $("panel");
@@ -100,6 +209,7 @@ function updatePanel() {
   const led = el.querySelector(".fp-led");
   if (led) led.innerHTML = `<span class="d">${live.slot || "···"}</span><span class="nm">${escapeHtml(live.name === INIT_NAME ? "Basic Program · sans nom" : live.name || "sans nom")}</span>${live.edited ? `<span class="pill amber">modifié</span>` : ""}`;
   if (el.querySelector(".fp.off")) return renderPanel();
+  if (!panelChecked()) return;
   const list = ctrls();
   el.querySelectorAll("[data-i]").forEach(n => { if (!n.classList.contains("drag")) paintCtrl(n, list[+n.dataset.i]); });
 }
@@ -113,8 +223,14 @@ function paintCtrl(n, c) {
 function sendCtrl(c, v) {
   if (!conn || conn.mode !== "midi" || !live.data) return;
   live.data[c.off] = v; live.holdUntil = Date.now() + 900; live.edited = true;
+  conn.output.send(ctrlMessage(c, v, panelMethod(), live.chan || 0));
+}
+// Message MIDI qui règle `c` sur la valeur d'octet `v` (fonction pure).
+function ctrlMessage(c, v, method, ch = 0) {
+  const st = 0xB0 | ch;
+  if (method === "nrpn") return [st, 99, c.nrpn >> 7, st, 98, c.nrpn & 0x7F, st, 6, v >> 7, st, 38, v & 0x7F];
   const ccv = c.s ? (v ? 127 : 0) : (c.o || c.enum) ? v : Math.round(v * 127 / c.max);
-  conn.output.send([0xB0 | (live.chan || 0), c.cc, ccv]);
+  return [st, c.cc, ccv];
 }
 function bindKnob(n, c) {
   const svg = n.querySelector("svg");
