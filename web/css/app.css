@@ -14,6 +14,10 @@ svg.i { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none;
 ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 10px; border: 3px solid var(--bg); }
 
 .app { display: grid; grid-template-columns: 232px minmax(0, 1fr) 328px; height: 100vh; }
+body.v-panel .app { grid-template-columns: 232px minmax(0, 1fr); }
+body.v-panel .inspector { display: none; }
+body.v-panel.wide .app { grid-template-columns: minmax(0, 1fr); }
+body.v-panel.wide .side { display: none; }
 @media (max-width: 1180px) { .app { grid-template-columns: 220px minmax(0, 1fr); height: auto; min-height: 100vh; } .inspector { grid-column: 2; border-left: none !important; border-top: 1px solid var(--line); height: auto !important; } .center { height: auto !important; } }
 @media (max-width: 760px) { .app { grid-template-columns: 1fr; } .side { position: static !important; height: auto !important; } .inspector { grid-column: 1; } }
 
@@ -158,7 +162,7 @@ body.v-panel .grid, body.v-panel .results, body.v-panel .legend, body.v-panel .b
 .panel { display: none; margin: 0 20px; }
 body.v-panel .panel { display: block; }
 
-/* Façade du Trigon-6 */
+/* Façade */
 .fp { border-radius: 10px; border: 1px solid #2c2f35; background: linear-gradient(#17181b, #121315); box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.35); padding: 16px 18px 18px; }
 .fp-head { display: flex; align-items: center; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid #25272c; }
 .fp-logo { font: 600 15px/1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: .32em; color: #d9dbe0; }
@@ -168,40 +172,62 @@ body.v-panel .panel { display: block; }
 .fp-led .d.off { color: #3a2423; text-shadow: none; }
 .fp-led .nm { font: 12.5px var(--mono); color: var(--ink2); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fp-led .pill { margin-left: 2px; }
-.fp-body { display: flex; flex-wrap: wrap; gap: 12px; }
-.fp-sec { flex: 1 1 auto; border: 1px solid #25272c; border-radius: 8px; padding: 10px 12px 12px; background: rgba(255,255,255,.012); }
-.fp-sec h4 { margin: 0 0 10px; font: 600 9.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-.fp-sec h4::after { content: ""; flex: 1; height: 1px; background: #25272c; }
-.fp-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
-.knob { width: 58px; display: flex; flex-direction: column; align-items: center; gap: 4px; user-select: none; }
-.knob svg { width: 46px; height: 46px; cursor: ns-resize; touch-action: none; }
-.knob .kl { font: 9.5px var(--mono); color: var(--ink2); text-align: center; letter-spacing: .04em; text-transform: uppercase; line-height: 1.2; }
-.knob .kv { font: 10px var(--mono); color: var(--muted); height: 12px; }
-.knob.big svg { width: 58px; height: 58px; }
-.knob.big { width: 70px; }
-.knob .trk { stroke: #2b2e34; }
-.knob .val { stroke: var(--accent); }
-.knob .cap { fill: url(#capg); stroke: #3a3d44; }
-.knob .ind { stroke: #e9ebef; }
-.knob:hover .val, .knob.drag .val { stroke: #5aa2f0; }
-.sw-b { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 58px; }
-.sw-b button { width: 34px; height: 22px; border-radius: 4px; border: 1px solid #3a3d44; background: linear-gradient(#2a2c31, #1f2125); cursor: pointer; position: relative; box-shadow: 0 1px 0 rgba(255,255,255,.04) inset; }
-.sw-b button::after { content: ""; position: absolute; top: 7px; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #3a2423; }
-.sw-b button.on::after { background: #ff5a4f; box-shadow: 0 0 6px rgba(255,90,79,.7); }
-.sw-b .kl { font: 9.5px var(--mono); color: var(--ink2); text-transform: uppercase; letter-spacing: .04em; text-align: center; }
-.sel3 { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.sel3 .opts { display: flex; border: 1px solid #3a3d44; border-radius: 4px; overflow: hidden; }
-.sel3 .opts button { min-width: 26px; height: 22px; padding: 0 6px; border: none; border-right: 1px solid #3a3d44; background: #1f2125; color: var(--muted); font: 10px var(--mono); cursor: pointer; }
-.sel3 .opts button:last-child { border-right: none; }
-.sel3 .opts button.on { background: #2d3138; color: #ff7a70; }
-.sel3 .kl { font: 9.5px var(--mono); color: var(--ink2); text-transform: uppercase; letter-spacing: .04em; }
-.bpm { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.bpm .v { font: 600 16px var(--mono); color: #ff5a4f; padding: 3px 8px; background: #0a0b0c; border: 1px solid #2a2c31; border-radius: 4px; }
-.bpm .kl { font: 9.5px var(--mono); color: var(--ink2); text-transform: uppercase; letter-spacing: .04em; }
+/* Façade dessinée comme le synthé */
+.fp.hw { background: #0c0d0f; border-color: #26282d; }
+.fp-scale { overflow: hidden; position: relative; }
+.hw-grid { display: grid; gap: 0; border: 1px solid #2e3035; border-radius: 4px; background: #101113; width: max-content; transform-origin: 0 0; }
+.hw-grid:not(.areas) { gap: 0; }
+.hw-blk { padding: 6px 8px 9px; border-right: 1px solid #2e3035; border-bottom: 1px solid #2e3035; display: flex; flex-direction: column; gap: 10px; }
+.hw-blk h4 { margin: 0; text-align: center; font: 500 14px/1.1 "Avenir Next", "Helvetica Neue", -apple-system, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #e8e9ec; }
+.hw-row { display: flex; align-items: flex-start; justify-content: space-around; gap: 6px; }
+.hw-stack { display: flex; flex-direction: column; gap: 8px; }
+.hw-sub { border-left: 1px solid #2e3035; padding-left: 8px; margin-left: 2px; }
+.hw-sub h5 { margin: 0 0 10px; text-align: center; font: 500 12px "Avenir Next", "Helvetica Neue", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #e8e9ec; }
+.hw-num { font: 500 20px "Avenir Next", "Helvetica Neue", sans-serif; color: #e8e9ec; align-self: center; width: 16px; }
+.hw-grid .kl { font: 600 8px/1.15 "Helvetica Neue", -apple-system, sans-serif; color: #d9dbe0; text-transform: uppercase; letter-spacing: .03em; text-align: center; white-space: nowrap; }
+.hw-knob, .hw-sw, .hw-select, .hw-disp, .hw-prog { display: flex; flex-direction: column; align-items: center; gap: 4px; user-select: none; position: relative; }
+.hw-knob svg { width: 40px; height: 40px; cursor: ns-resize; touch-action: none; overflow: visible; }
+.hw-knob .tk line { stroke: #8b8e95; stroke-width: 1.1; }
+.hw-knob .skirt { fill: #17181b; stroke: #3b3e44; stroke-width: 1; }
+.hw-knob .cap { fill: url(#capg); stroke: #2a2c31; stroke-width: .8; }
+.hw-knob .ind { stroke: #f2f3f5; stroke-width: 2.2; stroke-linecap: round; }
+.hw-knob .val { fill: none; stroke: #ff5a4f; stroke-width: 2.4; stroke-linecap: round; opacity: .75; }
+.hw-knob .kv { position: absolute; top: -12px; font: 9.5px var(--mono); color: #ff8a80; opacity: 0; transition: opacity .1s; pointer-events: none; }
+.hw-knob:hover .kv, .hw-knob.drag .kv, .hw-knob .kv.on { opacity: 1; }
+.hw-knob .kv.on { position: static; order: 3; }
+.hw-sw button { width: 24px; height: 22px; border-radius: 3px; border: 1px solid #45484f; background: linear-gradient(#2c2e33, #1d1f23); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 3px rgba(0,0,0,.5); cursor: pointer; }
+.hw-sw button:active { transform: translateY(1px); }
+.hw-sw.deco { flex-direction: column; }
+.hw-sw.deco button + button { margin-top: 0; }
+.led { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3a1f1e; flex: none; }
+.led.on { background: #ff4b3e; box-shadow: 0 0 6px 1px rgba(255,75,62,.7); }
+.hw-sw.wave .kl { font-size: 13px; letter-spacing: 0; text-transform: none; }
+.hw-sw.wave { flex-direction: column-reverse; }
+.hw-sw.ab button { font: 600 10px var(--mono); color: #d9dbe0; }
+.hw-select { flex-direction: row; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; max-width: 150px; }
+.hw-select > .kl { flex-basis: 100%; }
+.hw-select.ring { flex-direction: column; }
+.hw-select .hw-knob svg { cursor: ns-resize; }
+.hw-leds { display: flex; flex-direction: column; gap: 2px; }
+.hw-leds.two { display: grid; grid-template-columns: auto auto; gap: 2px 5px; }
+.hw-leds.ring { flex-direction: row; gap: 7px; }
+.hw-leds button { display: flex; align-items: center; gap: 3px; padding: 0; border: 0; background: none; font: 600 7.5px "Helvetica Neue", sans-serif; color: #c9cbd0; cursor: pointer; text-transform: none; white-space: nowrap; }
+.hw-leds.ring button { flex-direction: column-reverse; gap: 2px; font-size: 8.5px; }
+.hw-select.ledsonly { flex-direction: column; }
+.hw-disp .seg, .hw-prog .seg { min-width: 42px; padding: 3px 6px; text-align: center; font: 600 17px/1 var(--mono); color: #ff4b3e; text-shadow: 0 0 8px rgba(255,75,62,.5); letter-spacing: .1em; background: #070708; border: 1px solid #2a2c31; border-radius: 3px; box-shadow: inset 0 2px 6px rgba(0,0,0,.7); }
+.hw-prog .seg { font-size: 28px; min-width: 90px; }
+/* états : grisé (pas relié), lecture seule, apprentissage */
+.hw-grid .idle { opacity: .32; cursor: pointer; }
+.hw-grid .idle * { cursor: pointer !important; }
+.hw-grid .idle:hover { opacity: .6; }
+.hw-grid .ro svg, .hw-grid .ro button { cursor: default; }
+.hw-grid .deco { opacity: .45; }
+.hw-grid .deco * { cursor: default !important; }
+.hw-grid .learning { opacity: 1; animation: learn 1s ease-in-out infinite; border-radius: 6px; }
+@keyframes learn { 50% { box-shadow: 0 0 0 3px rgba(255,75,62,.55); } }
 .fp-foot { margin-top: 12px; font-size: 11px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 .fp-empty { padding: 50px 20px; text-align: center; color: var(--muted); }
-.fp.off .fp-body { opacity: .35; pointer-events: none; }
-.fp.unchecked .fp-body { opacity: .35; pointer-events: none; }
+.fp.off .fp-scale { opacity: .35; pointer-events: none; }
 .fp-note { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--line2); background: var(--bg); font-size: 12px; color: var(--ink2); }
 .fp-note .btn { margin-left: auto; }
 .fp-note span { color: var(--muted); }

@@ -8,8 +8,8 @@ let baseMsg = null;   // son en cours au début de la vérification (message 0x0
 
 // Valeur de test, différente de la valeur actuelle et dans la plage du réglage (fonction pure).
 function testValue(c, v) {
-  if (c.s) return v ? 0 : 1;
-  if (c.o) return (v + 1) % c.opts.length;
+  if (c.kind === "switch") return v ? 0 : 1;
+  if (c.kind === "select") return (v + 1) % c.opts.length;
   const lo = c.min || 0, hi = c.max;
   return v > (lo + hi) / 2 ? Math.round(lo + (hi - lo) / 4) : Math.round(lo + 3 * (hi - lo) / 4);
 }
@@ -19,13 +19,13 @@ function detectOffset(c, method, before, after, want) {
   const changed = [];
   for (let i = 0; i < before.length; i++) if (before[i] !== after[i]) changed.push(i);
   if (changed.length !== 1) return -1;
-  const at = changed[0], tol = method === "cc" && c.k && !c.enum ? Math.ceil(c.max / 127) : 0;
+  const at = changed[0], tol = method === "cc" && c.kind === "knob" && !c.enum ? Math.ceil(c.max / 127) : 0;
   return Math.abs(after[at] - want) <= tol ? at : -1;
 }
-const canSend = (c, m) => m === "nrpn" ? c.nrpn !== undefined : c.cc !== undefined && !c.r;
+const canSend = (c, m) => m === "nrpn" ? c.nrpn !== undefined : c.cc !== undefined && c.kind !== "display";
 
 async function tryCtrl(c, method, base) {
-  const want = testValue(c, base[c.off]);
+  const want = testValue(c, base[c.off ?? 0]);
   conn.output.send(ctrlMessage(c, want, method, live.chan || 0));
   await sleep(140);
   const m = await requestEditBuffer(1500);
@@ -37,11 +37,11 @@ async function tryCtrl(c, method, base) {
 }
 
 async function checkPanel() {
-  if (!conn || conn.mode !== "midi" || busy || !PANELS[synth]) return;
-  const list = PANELS[synth].flatMap(sec => sec.c);
+  if (!conn || conn.mode !== "midi" || busy || !LAYOUTS[synth]) return;
+  const list = allCtrls().filter(c => c.cc !== undefined || c.nrpn !== undefined);
   busy = true; cancelRequested = false; setBusyUi(true);
   const at = {}, fail = [];
-  let method = PANEL_FIXED[synth] || null;
+  let method = layout().fixed || null;
   try {
     baseMsg = await requestEditBuffer();
     const base = unpack(baseMsg.subarray(4, baseMsg.length - 1));
@@ -53,14 +53,14 @@ async function checkPanel() {
       const tries = (method ? [method] : ["nrpn", "cc"]).filter(m => canSend(c, m));
       let found = -1;
       for (const m of tries) { found = await tryCtrl(c, m, base); if (found >= 0) { method = m; break; } }
-      if (found >= 0) at[c.off] = found; else fail.push(c.off);
+      if (found >= 0) at[c.id] = found; else fail.push(c.id);
     }
     if (!method) throw new Error(`aucun réglage confirmé : vérifie GLOBALS > Param Rcv sur le ${synth}`);
-    const n = Object.keys(at).length, moved = Object.entries(at).filter(([d, f]) => +d !== f).length;
-    if (!PANEL_FIXED[synth]) {
+    const n = Object.keys(at).length, moved = list.filter(c => at[c.id] !== undefined && c.off !== undefined && at[c.id] !== c.off).length;
+    if (!layout().fixed) {
       db.panelCheck = { date: new Date().toISOString(), method, at, fail };
       // Le manuel du Prophet-6 place le nom en NRPN 236 à 255 : on le confirme de la même façon.
-      const nameAt = method === "nrpn" && synth === "Prophet-6" ? await tryCtrl({ off: 236, nrpn: 236, k: "nom", min: 32, max: 125 }, "nrpn", base) : -1;
+      const nameAt = method === "nrpn" && synth === "Prophet-6" ? await tryCtrl({ kind: "knob", off: 236, nrpn: 236, min: 32, max: 125 }, "nrpn", base) : -1;
       if (nameAt >= 0) { db.panelCheck.nameAt = nameAt; NAME_AT[synth] = nameAt; }
     }
     toast(`Façade vérifiée : ${n} réglages confirmés${fail.length ? `, ${fail.length} masqués` : ""}${moved ? `, ${moved} à une autre place que dans le manuel` : ""} (${method.toUpperCase()})`);
@@ -75,8 +75,8 @@ async function checkPanel() {
 
 // Bandeau au-dessus de la façade : à vérifier, ou réglages masqués.
 function panelNotice() {
-  if (PANEL_FIXED[synth]) return "";
-  const pc = db?.panelCheck, total = PANELS[synth].flatMap(s => s.c).length;
+  if (layout().fixed) return "";
+  const pc = db?.panelCheck, total = allCtrls().filter(c => c.cc !== undefined || c.nrpn !== undefined).length;
   const can = conn?.mode === "midi" && !busy;
   if (!pc) return `<div class="fp-note">Cette façade vient du manuel du ${synth}. Avant de l'afficher, l'app vérifie chaque réglage sur ton synthé
     (environ ${Math.ceil(total * 0.5)} s) : elle envoie une valeur de test, relit le son et remet ton son à la fin.

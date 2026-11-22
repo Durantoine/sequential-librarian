@@ -1,266 +1,253 @@
-// Façades du Trigon-6 et du Prophet-6 : potards synchronisés avec le son en cours.
+// Façade : dessin du synthé (panel-layouts.js) synchronisé avec le son en cours.
+// Une commande est « active » quand on connaît son octet : vérifié d'avance, confirmé par la
+// vérification (panel-check.js), ou appris en touchant le réglage sur le synthé.
 "use strict";
 
-/* ---------- Définitions ---------- */
-// off : octet du son en cours (données décompressées), cc / nrpn : message qui le modifie.
-// k : potard (max = valeur maxi, enum = la valeur CC est la valeur elle-même, bi = centré),
-// s : interrupteur, o : sélecteur, r : affichage seul.
-//
-// Trigon-6 : chaque réglage a été vérifié une fois pour toutes sur la machine (CC uniquement).
-// Prophet-6 : positions et numéros tirés du manuel (annexe C, octet = numéro NRPN) ; l'app les
-// vérifie sur le synthé avant de les afficher (panel-check.js).
-const PANEL_FIXED = { "Trigon-6": "cc" };   // synthé -> méthode d'envoi déjà vérifiée
-const P6_FX_A = ["Off", "BBD", "DDL", "Chorus", "Phaser H", "Phaser L"];
-const PANELS = {
-  "Trigon-6": [
-    { t: "Mixeur", c: [
-      { k: "Osc 1", off: 17, max: 127, cc: 69 },
-      { k: "Osc 2", off: 18, max: 127, cc: 77 },
-    ] },
-    { t: "Filtre", c: [
-      { k: "Cutoff", off: 29, max: 164, cc: 102, big: 1 },
-      { k: "Résonance", off: 30, max: 255, cc: 103, big: 1 },
-      { k: "Env. amt", off: 36, max: 254, cc: 47, bi: 1 },
-      { k: "Passe-haut", off: 28, max: 254, cc: 106 },
-      { o: "Clavier", off: 31, cc: 104, opts: ["Off", "½", "Full"] },
-      { s: "Vélocité", off: 32, cc: 105 },
-    ] },
-    { t: "Enveloppe filtre", c: [
-      { k: "Attack", off: 40, max: 127, cc: 50 }, { k: "Decay", off: 42, max: 127, cc: 51 },
-      { k: "Sustain", off: 44, max: 127, cc: 52 }, { k: "Release", off: 46, max: 127, cc: 53 },
-    ] },
-    { t: "Enveloppe ampli", c: [
-      { k: "Attack", off: 41, max: 127, cc: 43 }, { k: "Decay", off: 43, max: 127, cc: 44 },
-      { k: "Sustain", off: 45, max: 127, cc: 45 }, { k: "Release", off: 47, max: 127, cc: 46 },
-      { s: "Vélocité", off: 48, cc: 41 },
-    ] },
-    { t: "Glide", c: [ { k: "Rate", off: 23, max: 127, cc: 5 }, { s: "On", off: 25, cc: 65 } ] },
-    { t: "Distorsion", c: [ { k: "Amount", off: 63, max: 127, cc: 9 } ] },
-    { t: "Arpégiateur", c: [
-      { s: "On", off: 102, cc: 58 },
-      { o: "Mode", off: 100, cc: 59, opts: ["1", "2", "3", "4", "5"] },
-      { o: "Octaves", off: 101, cc: 60, opts: ["1", "2", "3"] },
-      { k: "Division", off: 103, max: 9, cc: 62, enum: 1 },
-      { r: "BPM", off: 98 },
-    ] },
-  ],
-  "Prophet-6": [
-    { t: "Oscillateur 1", c: [
-      { k: "Freq", off: 0, max: 60, cc: 67, nrpn: 0 },
-      { k: "Shape", off: 3, max: 254, cc: 70, nrpn: 3 },
-      { k: "Pulse W", off: 4, max: 255, cc: 71, nrpn: 4 },
-      { s: "Sync", off: 1, nrpn: 1 },
-    ] },
-    { t: "Oscillateur 2", c: [
-      { k: "Freq", off: 5, max: 60, cc: 75, nrpn: 5 },
-      { k: "Fine", off: 6, max: 254, cc: 76, nrpn: 6, bi: 1 },
-      { k: "Shape", off: 8, max: 254, cc: 78, nrpn: 8 },
-      { k: "Pulse W", off: 9, max: 255, cc: 79, nrpn: 9 },
-      { s: "Low freq", off: 10, nrpn: 10 },
-      { s: "Key", off: 11, nrpn: 11 },
-    ] },
-    { t: "Mixeur", c: [
-      { k: "Osc 1", off: 2, max: 127, cc: 69, nrpn: 2 },
-      { k: "Osc 2", off: 7, max: 127, cc: 77, nrpn: 7 },
-      { k: "Sub", off: 27, max: 127, cc: 8, nrpn: 27 },
-      { k: "Noise", off: 32, max: 127, nrpn: 32 },
-    ] },
-    { t: "Passe-bas", c: [
-      { k: "Cutoff", off: 45, max: 164, cc: 102, nrpn: 45, big: 1 },
-      { k: "Résonance", off: 46, max: 255, cc: 103, nrpn: 46, big: 1 },
-      { k: "Env. amt", off: 77, max: 254, cc: 47, nrpn: 77, bi: 1 },
-      { o: "Clavier", off: 47, cc: 104, nrpn: 47, opts: ["Off", "½", "Full"] },
-      { s: "Vélocité", off: 48, cc: 105, nrpn: 48 },
-    ] },
-    { t: "Passe-haut", c: [
-      { k: "Cutoff", off: 49, max: 164, cc: 106, nrpn: 49 },
-      { k: "Résonance", off: 50, max: 255, cc: 107, nrpn: 50 },
-      { k: "Env. amt", off: 82, max: 254, cc: 54, nrpn: 82, bi: 1 },
-      { o: "Clavier", off: 51, cc: 108, nrpn: 51, opts: ["Off", "½", "Full"] },
-      { s: "Vélocité", off: 52, cc: 109, nrpn: 52 },
-    ] },
-    { t: "Enveloppe filtre", c: [
-      { k: "Attack", off: 78, max: 127, cc: 50, nrpn: 78 }, { k: "Decay", off: 79, max: 127, cc: 51, nrpn: 79 },
-      { k: "Sustain", off: 80, max: 127, cc: 52, nrpn: 80 }, { k: "Release", off: 81, max: 127, cc: 53, nrpn: 81 },
-    ] },
-    { t: "Ampli", c: [
-      { k: "Env. amt", off: 66, max: 127, cc: 40, nrpn: 66 },
-      { k: "Attack", off: 67, max: 127, cc: 43, nrpn: 67 }, { k: "Decay", off: 68, max: 127, cc: 44, nrpn: 68 },
-      { k: "Sustain", off: 69, max: 127, cc: 45, nrpn: 69 }, { k: "Release", off: 70, max: 127, cc: 46, nrpn: 70 },
-      { s: "Vélocité", off: 71, cc: 41, nrpn: 71 },
-    ] },
-    { t: "LFO", c: [
-      { k: "Freq", off: 88, max: 254, nrpn: 88 },
-      { k: "Amount", off: 89, max: 255, nrpn: 89 },
-      { o: "Forme", off: 90, nrpn: 90, opts: ["Tri", "Saw", "RSaw", "Sqr", "Rnd"] },
-      { s: "Sync", off: 91, nrpn: 91 },
-      { s: "→ Freq 1", off: 93, nrpn: 93 }, { s: "→ Freq 2", off: 94, nrpn: 94 }, { s: "→ PW", off: 95, nrpn: 95 },
-      { s: "→ Ampli", off: 96, nrpn: 96 }, { s: "→ Passe-bas", off: 97, nrpn: 97 }, { s: "→ Passe-haut", off: 98, nrpn: 98 },
-    ] },
-    { t: "Poly Mod", c: [
-      { k: "Env. filtre", off: 143, max: 254, nrpn: 143, bi: 1 },
-      { k: "Osc 2", off: 144, max: 254, nrpn: 144, bi: 1 },
-      { s: "→ Freq 1", off: 145, nrpn: 145 }, { s: "→ Shape 1", off: 146, nrpn: 146 }, { s: "→ PW 1", off: 147, nrpn: 147 },
-      { s: "→ Passe-bas", off: 148, nrpn: 148 }, { s: "→ Passe-haut", off: 149, nrpn: 149 },
-    ] },
-    { t: "Glide", c: [
-      { k: "Rate", off: 30, max: 127, nrpn: 30 },
-      { o: "Mode", off: 28, cc: 5, nrpn: 28, opts: ["FR", "FRA", "FT", "FTA"] },
-      { s: "On", off: 29, cc: 65, nrpn: 29 },
-    ] },
-    { t: "Effets", c: [
-      { s: "On", off: 135, nrpn: 135 },
-      { o: "A", off: 119, nrpn: 119, opts: P6_FX_A },
-      { k: "Mix A", off: 120, max: 127, nrpn: 120 },
-      { k: "Param 1 A", off: 121, max: 255, nrpn: 121 },
-      { k: "Param 2 A", off: 122, max: 127, nrpn: 122 },
-      { k: "Type B", off: 127, max: 9, nrpn: 127, enum: 1 },
-      { k: "Mix B", off: 128, max: 127, nrpn: 128 },
-      { k: "Param 1 B", off: 129, max: 255, nrpn: 129 },
-      { k: "Param 2 B", off: 130, max: 127, nrpn: 130 },
-    ] },
-    { t: "Divers", c: [
-      { k: "Distorsion", off: 64, max: 127, cc: 9, nrpn: 64 },
-      { k: "Slop", off: 33, max: 127, nrpn: 33 },
-      { s: "Unison", off: 156, nrpn: 156 },
-    ] },
-    { t: "Arpégiateur", c: [
-      { s: "On", off: 160, cc: 58, nrpn: 160 },
-      { o: "Mode", off: 161, cc: 59, nrpn: 161, opts: ["1", "2", "3", "4", "5"] },
-      { o: "Octaves", off: 162, cc: 60, nrpn: 162, opts: ["1", "2", "3"] },
-      { k: "Division", off: 163, max: 9, cc: 62, nrpn: 163, enum: 1 },
-      { r: "BPM", off: 167, nrpn: 167, min: 30, max: 250 },
-    ] },
-  ],
-};
-
-/* ---------- Réglages utilisables ---------- */
-// Méthode d'envoi (« cc » ou « nrpn ») : connue d'avance, ou trouvée par la vérification.
-const panelMethod = () => PANEL_FIXED[synth] || db?.panelCheck?.method || null;
+const layout = () => LAYOUTS[synth];
+const panelMethod = () => layout()?.fixed || db?.panelCheck?.method || null;
 const panelChecked = () => !!panelMethod();
-// Avant vérification : tous les réglages, sans valeurs. Après : ceux confirmés, à leur place relevée.
-function effective(c) {
-  if (PANEL_FIXED[synth] || !panelChecked()) return c;
-  const at = db.panelCheck.at?.[c.off];
-  return at === undefined ? null : { ...c, off: at };
+let fxSide = "a";          // effet affiché par les potards de la section Effets (comme le bouton A/B)
+let learning = null;       // { id, base, cand, hits, t0 } pendant un apprentissage
+
+/* ---------- Commandes ---------- */
+// Toutes les commandes d'une façade, « fx.@ » développé en A et B.
+function allCtrls(L = layout()) {
+  const out = [];
+  const walk = it => {
+    if (it.items) { it.items.flat().forEach(walk); return; }
+    if (!it.id || it.kind === "deco") return;
+    if (it.id.includes("@")) for (const s of ["a", "b"]) out.push({ ...it, id: it.id.replace("@", s) });
+    else out.push(it);
+  };
+  (L?.blocks || []).forEach(b => b.rows.flat().forEach(walk));
+  return out;
 }
-const panelSections = () => (PANELS[synth] || []).map(sec => ({ t: sec.t, c: sec.c.map(effective).filter(Boolean) })).filter(sec => sec.c.length);
-const ctrls = () => panelSections().flatMap(sec => sec.c);
-function setView(v) {
-  if (v === "panel" && !PANELS[synth]) v = "grid";
-  view = v; savePref("view", v);
-  document.body.classList.toggle("v-panel", v === "panel");
-  render();
-  if (v === "panel") pollEditBuffer();
+const byId = id => allCtrls().find(c => c.id === id);
+// Commande utilisable : octet connu, et CC ou NRPN si elle peut être pilotée. null sinon.
+function resolve(c) {
+  if (!c?.id || c.kind === "deco") return null;
+  if (c.of) { const t = resolve(byId(c.of)); return t && { ...c, off: t.off, send: false }; }
+  const L = layout(), learned = db?.panelLearn?.[c.id];
+  if (L.fixed && c.off !== undefined) return { ...c, send: c.cc !== undefined && c.kind !== "display" };
+  const at = db?.panelCheck?.at?.[c.id];
+  if (!L.fixed && at !== undefined) return { ...c, off: at, send: c.kind !== "display" };
+  if (learned !== undefined) {
+    const cc = L.fixed ? L.ccAt?.[learned] : undefined;
+    return { ...c, off: learned, cc, nrpn: undefined, send: cc !== undefined, learned: true };
+  }
+  return null;
 }
-const A0 = -135, A1 = 135;
-function arc(a, b, r = 19) {
-  const pt = a => { const t = (a - 90) * Math.PI / 180; return [25 + r * Math.cos(t), 25 + r * Math.sin(t)]; };
+const sideId = id => id.replace("@", fxSide);
+
+/* ---------- Valeurs ---------- */
+const lo = c => c.min || 0;
+const hiOf = c => c.kind === "select" ? c.opts.length - 1 : c.kind === "switch" ? 1 : c.max;
+const center = c => Math.floor(c.max / 2);
+function valText(c, v) {
+  if (v === undefined) return "";
+  if (c.kind === "select") return c.opts[v] ?? String(v);
+  if (c.codes) return c.codes[v] ?? String(v);
+  if (c.bi) { const d = v - center(c); return (d > 0 ? "+" : "") + d; }
+  return String(v);
+}
+
+/* ---------- Dessin ---------- */
+const A0 = -150, A1 = 150;
+function arc(a, b, r) {
+  const pt = x => { const t = (x - 90) * Math.PI / 180; return [25 + r * Math.cos(t), 25 + r * Math.sin(t)]; };
   const [x0, y0] = pt(a), [x1, y1] = pt(b);
   return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${b - a > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
 }
-function knobSvg(c, v) {
-  const f = Math.max(0, Math.min(1, v / c.max)), a = A0 + f * (A1 - A0);
-  const from = c.bi ? 0 : A0;
-  const t = (a - 90) * Math.PI / 180;
-  return `<svg viewBox="0 0 50 50"><path class="trk" d="${arc(A0, A1)}" fill="none" stroke-width="3.2" stroke-linecap="round"/>` +
-    (Math.abs(a - from) > .5 ? `<path class="val" d="${arc(Math.min(from, a), Math.max(from, a))}" fill="none" stroke-width="3.2" stroke-linecap="round"/>` : "") +
-    `<circle class="cap" cx="25" cy="25" r="13.5" stroke-width="1"/>` +
-    `<line class="ind" x1="${(25 + 5 * Math.cos(t)).toFixed(2)}" y1="${(25 + 5 * Math.sin(t)).toFixed(2)}" x2="${(25 + 12 * Math.cos(t)).toFixed(2)}" y2="${(25 + 12 * Math.sin(t)).toFixed(2)}" stroke-width="2" stroke-linecap="round"/></svg>`;
+// Potard noir cranté, graduations autour, index blanc. f = position de 0 à 1 (null : inconnue).
+function knobSvg(f, bi) {
+  const ticks = Array.from({ length: 11 }, (_, i) => {
+    const t = (A0 + i * (A1 - A0) / 10 - 90) * Math.PI / 180;
+    return `<line x1="${(25 + 20.5 * Math.cos(t)).toFixed(2)}" y1="${(25 + 20.5 * Math.sin(t)).toFixed(2)}" x2="${(25 + 23.5 * Math.cos(t)).toFixed(2)}" y2="${(25 + 23.5 * Math.sin(t)).toFixed(2)}"/>`;
+  }).join("");
+  let ind = "", val = "";
+  if (f !== null) {
+    const a = A0 + Math.max(0, Math.min(1, f)) * (A1 - A0), t = (a - 90) * Math.PI / 180, from = bi ? 0 : A0;
+    if (Math.abs(a - from) > .5) val = `<path class="val" d="${arc(Math.min(from, a), Math.max(from, a), 18.2)}"/>`;
+    ind = `<line class="ind" x1="${(25 + 6 * Math.cos(t)).toFixed(2)}" y1="${(25 + 6 * Math.sin(t)).toFixed(2)}" x2="${(25 + 14 * Math.cos(t)).toFixed(2)}" y2="${(25 + 14 * Math.sin(t)).toFixed(2)}"/>`;
+  }
+  return `<svg viewBox="0 0 50 50"><g class="tk">${ticks}</g>${val}<circle class="skirt" cx="25" cy="25" r="16.5"/><circle class="cap" cx="25" cy="25" r="13"/>${ind}</svg>`;
 }
-const showVal = (c, v) => c.bi ? (v - 127 > 0 ? "+" : "") + (v - 127) : c.enum ? String(v + 1) : String(v);
-function ctrlHtml(c, i, d) {
-  const v = d ? d[c.off] : 0;
-  if (c.k) return `<div class="knob ${c.big ? "big" : ""}" data-i="${i}">${knobSvg(c, v)}<div class="kv">${d ? showVal(c, v) : ""}</div><div class="kl">${c.k}</div></div>`;
-  if (c.s) return `<div class="sw-b" data-i="${i}"><button class="${v ? "on" : ""}" title="${c.s}"></button><div class="kl">${c.s}</div></div>`;
-  if (c.o) return `<div class="sel3" data-i="${i}"><div class="opts">${c.opts.map((o, j) => `<button data-j="${j}" class="${v === j ? "on" : ""}">${o}</button>`).join("")}</div><div class="kl">${c.o}</div></div>`;
-  if (c.r) return `<div class="bpm" data-i="${i}"><div class="v">${d ? v : "···"}</div><div class="kl">${c.r}</div></div>`;
+function ctrlHtml(it, d) {
+  switch (it.kind) {
+    case "num": return `<div class="hw-num">${it.label}</div>`;
+    case "stack": return `<div class="hw-stack">${it.items.map(r => `<div class="hw-row">${r.map(x => ctrlHtml(x, d)).join("")}</div>`).join("")}</div>`;
+    case "sub": return `<div class="hw-sub"><h5>${it.t}</h5><div class="hw-row">${it.items.map(x => ctrlHtml(x, d)).join("")}</div></div>`;
+    case "abswitch": return `<div class="hw-sw ab" data-ab="1"><span class="led on"></span><button title="Choisir l'effet réglé par les potards">${fxSide.toUpperCase()}</button><div class="kl">${it.label}</div></div>`;
+    case "program": return `<div class="hw-prog"><div class="seg">${conn && live.ok ? (live.slot || "···") : "–––"}</div><div class="kl">Bank · Program</div></div>`;
+    case "deco": return it.knob ? `<div class="hw-knob deco" title="${escapeHtml(it.title || "")}">${knobSvg(.5)}<div class="kl">${it.label}</div></div>`
+      : `<div class="hw-sw deco" title="${escapeHtml(it.title || "Se règle sur le synthé")}">${"<button></button>".repeat(it.button || 1)}<div class="kl">${it.label}</div></div>`;
+  }
+  const c = it.id.includes("@") ? { ...it, id: sideId(it.id) } : it;
+  const r = resolve(c), v = r && d ? d[r.off] : undefined;
+  const st = !r ? "idle" : r.send ? "live" : "ro";
+  const cls = `${st} ${learning?.id === c.id ? "learning" : ""}`;
+  const tip = !r ? "Pas encore relié : clique, puis touche ce réglage sur le synthé pour l'apprendre"
+    : !r.send ? `Affiché seulement${r.learned ? " (appris, ⌥ clic pour oublier)" : ""} : le synthé ne reçoit pas ce réglage en CC` : "";
+  const attrs = `data-id="${c.id}" title="${escapeHtml(tip)}"`;
+  if (c.kind === "knob") {
+    const f = v === undefined ? null : (v - lo(c)) / (c.max - lo(c));
+    return `<div class="hw-knob ${cls}" ${attrs}>${knobSvg(f, c.bi)}<div class="kl">${c.label}</div><div class="kv">${valText(c, v)}</div></div>`;
+  }
+  if (c.kind === "switch") return `<div class="hw-sw ${cls} ${c.wave ? "wave" : ""}" ${attrs}><span class="led ${v ? "on" : ""}"></span><button></button><div class="kl">${c.label}</div></div>`;
+  if (c.kind === "display") return `<div class="hw-disp ${cls}" ${attrs}><div class="seg">${v === undefined ? "···" : escapeHtml(valText(c, v))}</div>${c.label ? `<div class="kl">${c.label}</div>` : ""}</div>`;
+  if (c.kind === "select") {
+    const leds = c.knobOnly ? "" : `<div class="hw-leds ${c.ring ? "ring" : ""} ${c.cols === 2 ? "two" : ""}">${c.opts.map((o, j) => `<button data-j="${j}" class="${v === j ? "on" : ""}"><span class="led ${v === j ? "on" : ""}"></span>${o}</button>`).join("")}</div>`;
+    const knob = c.leds ? "" : `<div class="hw-knob sel">${knobSvg(v === undefined ? null : v / Math.max(1, c.opts.length - 1))}${c.knobOnly ? `<div class="kv on">${valText(c, v)}</div>` : ""}</div>`;
+    return `<div class="hw-select ${cls} ${c.ring ? "ring" : ""} ${c.leds ? "ledsonly" : ""}" ${attrs}>${c.ring ? leds + knob : knob + leds}<div class="kl">${c.label}</div></div>`;
+  }
   return "";
 }
+
 function renderPanel() {
-  const el = $("panel");
-  const P = PANELS[synth];
-  if (!P) { el.innerHTML = ""; return; }
-  const checked = panelChecked();
+  const el = $("panel"), L = layout();
+  if (!L) { el.innerHTML = ""; return; }
   const on = !!conn && live.ok && !!live.data;
-  const d = on && checked ? live.data : null;
-  let i = 0;
-  el.innerHTML = `<div class="fp ${on ? "" : "off"} ${checked ? "" : "unchecked"}">
+  const d = on ? live.data : null;
+  const g = L.grid;
+  el.innerHTML = `<div class="fp hw ${on ? "" : "off"} ${L.grid.areas ? "areas" : ""}">
     <div class="fp-head">
-      <div class="fp-logo">${synth.toUpperCase()}<small>SON EN COURS</small></div>
+      <div class="fp-logo">${synth.toUpperCase()}</div>
       <div class="fp-led"><span class="d ${on ? "" : "off"}">${on ? (live.slot || "···") : "–––"}</span>
         <span class="nm">${on ? escapeHtml(live.name === INIT_NAME ? "Basic Program · sans nom" : live.name || "sans nom") : (conn ? "lecture…" : "synthé non connecté")}</span>
         ${on && live.edited ? `<span class="pill amber">modifié</span>` : ""}</div>
       <button class="btn sm" id="fpSave" ${on && conn.mode === "midi" && !busy ? "" : "disabled"}>${icon("save")}Sauver</button>
+      <button class="btn sm ghost" id="fpWide" title="Masquer la barre latérale pour agrandir la façade">${document.body.classList.contains("wide") ? "Réduire" : "Agrandir"}</button>
     </div>
     ${panelNotice()}
-    <div class="fp-body">${panelSections().map(sec => `<div class="fp-sec"><h4>${sec.t}</h4><div class="fp-row">${sec.c.map(c => ctrlHtml(c, i++, d)).join("")}</div></div>`).join("")}</div>
-    <div class="fp-foot"><span>Tourne un potard ici ou sur le synthé : les deux restent synchronisés.</span><span>Glisser verticalement · Maj pour un réglage fin · molette</span>
-    <span>Seuls les réglages vérifiés sur ton ${synth} sont affichés.</span></div>
+    <div class="fp-scale"><div class="hw-grid" style="${escapeHtml(`grid-template-columns:${g.cols};${g.areas ? `grid-template-areas:${g.areas.join(" ")}` : ""}`)}">
+      ${L.blocks.map(b => `<section class="hw-blk" ${b.area ? `style="grid-area:${b.area}"` : ""}>${b.t ? `<h4>${b.t}</h4>` : ""}${b.rows.map(r => `<div class="hw-row">${r.map(x => ctrlHtml(x, d)).join("")}</div>`).join("")}</section>`).join("")}
+    </div></div>
+    <div class="fp-foot"><span>Glisser verticalement · Maj pour un réglage fin · molette</span>
+      <span>Les réglages grisés ne sont pas encore reliés : clique-les, puis touche le même réglage sur le synthé.</span></div>
   </div>`;
-  if (!on && !conn) el.querySelector(".fp-body").insertAdjacentHTML("beforebegin", `<div class="fp-empty">Allume le ${synth} et branche-le en USB : la façade affichera le son en cours.</div>`);
+  if (!on && !conn) el.querySelector(".fp-scale").insertAdjacentHTML("beforebegin", `<div class="fp-empty">Allume le ${synth} et branche-le en USB : la façade affichera le son en cours.</div>`);
   $("fpSave").onclick = saveCurrent;
+  $("fpWide").onclick = () => { const w = !document.body.classList.contains("wide"); document.body.classList.toggle("wide", w); savePref("wide", w ? "1" : ""); renderPanel(); };
   $("fpCheck") && ($("fpCheck").onclick = checkPanel);
-  if (checked) bindPanel();
+  bindPanel();
+  fitPanel();
 }
+// La façade garde ses proportions : on la réduit pour qu'elle tienne dans la largeur disponible.
+function fitPanel() {
+  const box = $("panel").querySelector(".fp-scale"), grid = box?.firstElementChild;
+  if (!grid) return;
+  grid.style.transform = "none";
+  const k = Math.min(1.25, box.clientWidth / grid.offsetWidth);
+  grid.style.transform = `scale(${k.toFixed(4)})`;
+  box.style.height = `${Math.ceil(grid.offsetHeight * k)}px`;
+}
+
 function updatePanel() {
   const el = $("panel");
-  if (!el.querySelector(".fp") || !live.data) return renderPanel();
+  if (!el.querySelector(".fp") || el.querySelector(".fp.off") || !live.data) return renderPanel();
   const led = el.querySelector(".fp-led");
   if (led) led.innerHTML = `<span class="d">${live.slot || "···"}</span><span class="nm">${escapeHtml(live.name === INIT_NAME ? "Basic Program · sans nom" : live.name || "sans nom")}</span>${live.edited ? `<span class="pill amber">modifié</span>` : ""}`;
-  if (el.querySelector(".fp.off")) return renderPanel();
-  if (!panelChecked()) return;
-  const list = ctrls();
-  el.querySelectorAll("[data-i]").forEach(n => { if (!n.classList.contains("drag")) paintCtrl(n, list[+n.dataset.i]); });
+  const seg = el.querySelector(".hw-prog .seg"); if (seg) seg.textContent = live.slot || "···";
+  el.querySelectorAll("[data-id]").forEach(n => { if (!n.classList.contains("drag")) paint(n); });
 }
-function paintCtrl(n, c) {
-  const v = live.data[c.off];
-  if (c.k) { n.querySelector("svg").outerHTML = knobSvg(c, v); n.querySelector(".kv").textContent = showVal(c, v); bindKnob(n, c); }
-  else if (c.s) n.querySelector("button").classList.toggle("on", !!v);
-  else if (c.o) n.querySelectorAll("button").forEach(b => b.classList.toggle("on", +b.dataset.j === v));
-  else if (c.r) n.querySelector(".v").textContent = v;
+function paint(n) {
+  const c = byId(n.dataset.id), r = resolve(c);
+  if (!r || !live.data) return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = ctrlHtml(c, live.data);
+  const fresh = tmp.firstElementChild;
+  n.replaceWith(fresh);
+  bindCtrl(fresh);
 }
-function sendCtrl(c, v) {
-  if (!conn || conn.mode !== "midi" || !live.data) return;
-  live.data[c.off] = v; live.holdUntil = Date.now() + 900; live.edited = true;
-  conn.output.send(ctrlMessage(c, v, panelMethod(), live.chan || 0));
-}
+
+/* ---------- Envoi ---------- */
 // Message MIDI qui règle `c` sur la valeur d'octet `v` (fonction pure).
 function ctrlMessage(c, v, method, ch = 0) {
   const st = 0xB0 | ch;
   if (method === "nrpn") return [st, 99, c.nrpn >> 7, st, 98, c.nrpn & 0x7F, st, 6, v >> 7, st, 38, v & 0x7F];
-  const ccv = c.s ? (v ? 127 : 0) : (c.o || c.enum) ? v : Math.round(v * 127 / c.max);
+  const ccv = c.kind === "switch" ? (v ? 127 : 0) : (c.kind === "select" || c.enum) ? v : Math.round(v * 127 / c.max);
   return [st, c.cc, ccv];
 }
-function bindKnob(n, c) {
-  const svg = n.querySelector("svg");
+function setCtrl(r, v) {
+  if (!conn || conn.mode !== "midi" || !live.data || !r.send) return;
+  v = Math.max(lo(r), Math.min(hiOf(r), v));
+  if (v === live.data[r.off]) return;
+  live.data[r.off] = v; live.holdUntil = Date.now() + 900; live.edited = true;
+  conn.output.send(ctrlMessage(r, v, r.learned ? "cc" : panelMethod(), live.chan || 0));
+}
+
+/* ---------- Interaction ---------- */
+function bindPanel() { $("panel").querySelectorAll("[data-id], [data-ab]").forEach(bindCtrl); }
+function bindCtrl(n) {
+  if (!n) return;
+  if (n.dataset.ab) { n.querySelector("button").onclick = () => { fxSide = fxSide === "a" ? "b" : "a"; renderPanel(); }; return; }
+  const c = byId(n.dataset.id), r = resolve(c);
+  n.onclick = e => {
+    if (e.altKey && r?.learned) { forgetLearn(c); return; }
+    if (!r && !e.target.closest("[data-j]")) startLearn(c);
+  };
+  if (!r || !r.send) return;
+  if (c.kind === "switch") n.querySelector("button").onclick = e => { if (!e.altKey) { setCtrl(r, live.data[r.off] ? 0 : 1); paint(n); } };
+  n.querySelectorAll("[data-j]").forEach(b => b.onclick = e => { e.stopPropagation(); setCtrl(r, +b.dataset.j); paint(n); });
+  const svg = n.querySelector(".hw-knob svg, :scope > svg");
+  if (!svg || (c.kind === "select" && c.leds)) return;
+  const steps = c.kind === "select" ? c.opts.length - 1 : null;
   svg.onpointerdown = e => {
     if (!live.data) return;
     e.preventDefault(); svg.setPointerCapture(e.pointerId); n.classList.add("drag");
-    const y0 = e.clientY, v0 = live.data[c.off];
-    let last = v0;
+    const y0 = e.clientY, v0 = live.data[r.off];
     svg.onpointermove = m => {
-      const range = m.shiftKey ? 600 : 160;
-      let v = Math.round(v0 + (y0 - m.clientY) * c.max / range);
-      v = Math.max(0, Math.min(c.max, v));
-      if (v === last) return;
-      last = v; sendCtrl(c, v); paintCtrl(n, c);
+      const range = steps ? 18 * steps : (m.shiftKey ? 600 : 160);
+      const span = steps || (r.max - lo(r));
+      setCtrl(r, Math.round(v0 + (y0 - m.clientY) * span / range));
+      const k = n.querySelector(".kv"); if (k) k.textContent = valText(r, live.data[r.off]);
+      const f = steps ? live.data[r.off] / steps : (live.data[r.off] - lo(r)) / (r.max - lo(r));
+      svg.innerHTML = knobSvg(f, r.bi).replace(/^<svg[^>]*>|<\/svg>$/g, "");
     };
-    svg.onpointerup = svg.onpointercancel = () => { svg.onpointermove = null; n.classList.remove("drag"); };
+    svg.onpointerup = svg.onpointercancel = () => { svg.onpointermove = null; n.classList.remove("drag"); paint(n); };
   };
   svg.onwheel = e => {
     if (!live.data) return;
     e.preventDefault();
-    const step = Math.max(1, Math.round(c.max / 64)) * (e.deltaY < 0 ? 1 : -1);
-    sendCtrl(c, Math.max(0, Math.min(c.max, live.data[c.off] + step))); paintCtrl(n, c);
+    const step = steps ? 1 : Math.max(1, Math.round((r.max - lo(r)) / 64));
+    setCtrl(r, live.data[r.off] + (e.deltaY < 0 ? step : -step)); paint(n);
   };
 }
-function bindPanel() {
-  const list = ctrls();
-  $("panel").querySelectorAll("[data-i]").forEach(n => {
-    const c = list[+n.dataset.i];
-    if (c.k) bindKnob(n, c);
-    if (c.s) n.querySelector("button").onclick = () => { if (!live.data) return; sendCtrl(c, live.data[c.off] ? 0 : 1); paintCtrl(n, c); };
-    if (c.o) n.querySelectorAll("button").forEach(b => b.onclick = () => { if (!live.data) return; sendCtrl(c, +b.dataset.j); paintCtrl(n, c); });
-  });
+
+/* ---------- Apprentissage ---------- */
+// On note le son en cours, puis on attend qu'un seul octet change (deux relectures de suite).
+function startLearn(c) {
+  if (!conn || conn.mode !== "midi" || !live.data || busy) { toast("Branche le synthé pour relier ce réglage"); return; }
+  learning = { id: c.id, base: Uint8Array.from(live.data), cand: -1, hits: 0, t0: Date.now() };
+  toast(`Touche « ${c.label} » sur le ${synth} (bouton ou potard)…`);
+  renderPanel();
+}
+function forgetLearn(c) {
+  delete db.panelLearn[c.id]; scheduleSave(); toast(`« ${c.label} » n'est plus relié`); renderPanel();
+}
+function learnTick(data) {
+  if (!learning) return;
+  const c = byId(learning.id);
+  if (Date.now() - learning.t0 > 25000) { learning = null; toast("Aucun changement reçu : réessaie en tournant le réglage sur le synthé"); renderPanel(); return; }
+  const changed = [];
+  for (let i = 0; i < data.length; i++) if (data[i] !== learning.base[i] && (i < 116 || i >= 136)) changed.push(i);
+  if (changed.length !== 1) { if (changed.length > 1) { learning.base = Uint8Array.from(data); learning.cand = -1; } return; }
+  const at = changed[0];
+  learning.hits = at === learning.cand ? learning.hits + 1 : 1; learning.cand = at;
+  if (learning.hits < 2) return;
+  const owner = allCtrls().find(x => x.id !== c.id && resolve(x)?.off === at && x.kind !== "display");
+  if (owner) { toast(`Ça, c'est « ${owner.label} ». Touche « ${c.label} »`); learning.base = Uint8Array.from(data); learning.cand = -1; return; }
+  (db.panelLearn ||= {})[c.id] = at;
+  learning = null; scheduleSave();
+  toast(`« ${c.label} » est relié${resolve(c).send ? " et pilotable" : " (affiché seulement)"}`);
+  renderPanel();
+}
+
+function setView(v) {
+  if (v === "panel" && !LAYOUTS[synth]) v = "grid";
+  view = v; savePref("view", v);
+  if (v !== "panel") learning = null;
+  document.body.classList.toggle("v-panel", v === "panel");
+  render();
+  if (v === "panel") pollEditBuffer();
 }

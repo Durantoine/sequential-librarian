@@ -25,10 +25,12 @@ $("demoOverwrite").onclick = () => {
   demoState.overrides.set(k, 99999);
   toast(`${k} a été « écrasé » sur le synthé simulé. Relis la banque ${k[0]} pour voir l'alerte.`);
 };
+window.addEventListener("resize", () => { if (view === "panel") fitPanel(); });
 window.addEventListener("beforeunload", () => { if (saveTimer) saveNow(); });
 
-document.body.classList.toggle("v-panel", view === "panel" && !!PANELS[synth]);
-if (!PANELS[synth]) view = "grid";
+document.body.classList.toggle("wide", loadPref("wide", "") === "1");
+document.body.classList.toggle("v-panel", view === "panel" && !!LAYOUTS[synth]);
+if (!LAYOUTS[synth]) view = "grid";
 // Signal de vie pour le serveur de développement (il s'arrête seul sans fenêtre ouverte).
 setInterval(() => fetch("/api/ping").catch(() => {}), 20000);
 initReorder();

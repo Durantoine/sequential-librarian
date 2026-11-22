@@ -54,7 +54,7 @@ async function backup() {
   } catch { toast("Sauvegarde impossible"); }
 }
 
-/* ---------- Markdown pour Obsidian ---------- */
+/* ---------- Note Markdown (lisible dans Obsidian ou tout éditeur) ---------- */
 function buildMarkdown() {
   const esc = t => String(t || "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
   const rows = Object.entries(db.slots).sort(([a], [b]) => a.localeCompare(b));

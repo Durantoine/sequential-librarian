@@ -16,7 +16,7 @@ function render() {
     synth = name; savePref("synth", name);
     if (conn?.mode === "midi") { conn.input.onmidimessage = null; }
     conn = null; stopLive(); await loadDb(); if (midi) fillPorts();
-    if (!PANELS[synth] && view === "panel") setView("grid"); else render();
+    if (!LAYOUTS[synth] && view === "panel") setView("grid"); else render();
     autoConnect();
   });
 
@@ -84,7 +84,7 @@ function renderGrid() {
       return `<button class="bank ${b === bank ? "on" : ""}" data-b="${b}" title="Banque ${b}">${b}${pip !== null ? `<span class="pip ${pip}"></span>` : ""}</button>`;
     }).join("") + `</div></div>`).join("") +
     `<div class="views seg"><button class="vtab ${view === "grid" ? "on" : ""}" data-v="grid">Grille</button>` +
-    `<button class="vtab ${view === "panel" ? "on" : ""}" data-v="panel" ${PANELS[synth] ? "" : "disabled title='Pas encore disponible pour ce synthé'"}>Façade</button></div>`;
+    `<button class="vtab ${view === "panel" ? "on" : ""}" data-v="panel" ${LAYOUTS[synth] ? "" : "disabled title='Pas encore disponible pour ce synthé'"}>Façade</button></div>`;
   $("banks").querySelectorAll(".bank").forEach(el => el.onclick = () => { bank = +el.dataset.b; render(); });
   $("banks").querySelectorAll(".vtab").forEach(el => el.onclick = () => setView(el.dataset.v));
 

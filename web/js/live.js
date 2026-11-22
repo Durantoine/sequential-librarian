@@ -10,7 +10,7 @@ function startLive() {
   stopLive();
   Object.assign(live, { slot: null, slotSource: null, name: "", hash: null, edited: false, ok: false, data: null, msg: null });
   // Façade affichée : on relit le son plus souvent pour suivre les potards.
-  live.timer = setInterval(() => { if (Date.now() - live.last >= (view === "panel" ? 500 : 1500)) pollEditBuffer(); }, 200);
+  live.timer = setInterval(() => { if (Date.now() - live.last >= (learning ? 150 : view === "panel" ? 500 : 1500)) pollEditBuffer(); }, 200);
   pollEditBuffer();
 }
 function stopLive() {
@@ -37,6 +37,7 @@ async function pollEditBuffer() {
     const prevSlot = live.slot, changed = h !== live.hash || !live.ok;
     live.hash = h; live.name = name; live.ok = true; live.msg = msg;
     if (Date.now() > live.holdUntil) { live.data = data; if (view === "panel" && changed) updatePanel(); }
+    if (learning) learnTick(data);
     const known = live.slot && db.slots[live.slot];
     if (!live.slot || live.slotSource !== "pc" || (known?.synthName && known.synthName !== name)) {
       const g = guessSlot(h, name);

@@ -9,8 +9,22 @@ Ces synthés ne permettent pas de nommer ni de ranger facilement leurs 1000 prog
 - **protéger** les presets importants : alerte s'ils sont écrasés, export de la version protégée en `.syx` ;
 - **renommer** un preset directement sur le synthé (Trigon-6) ;
 - **sauver** le son en cours, avec ses réglages modifiés, dans l'emplacement de son choix (copie `.syx` de l'ancien contenu avant chaque écriture, puis relecture pour vérifier) ;
-- afficher une **façade** du Trigon-6 avec les potards du son en cours, synchronisée dans les deux sens ;
+- **réorganiser** les banques par glisser-déposer : échanger deux presets, ou en insérer un en décalant les autres ;
+- afficher la **façade** du synthé avec les potards du son en cours, synchronisée dans les deux sens ;
 - garder une base et une note Markdown (pratique avec Obsidian) dans le dossier de son choix.
+
+![Grille des presets](docs/screenshots/grille.png)
+
+![Façade du Trigon-6](docs/screenshots/facade.png)
+
+_Captures en mode démo (synthé simulé)._
+
+### La façade
+
+Elle reprend la disposition du synthé. Un réglage allumé suit le son en cours ; s'il est pilotable, on le tourne à la souris (glisser verticalement, Maj pour un réglage fin, molette) et le synthé suit.
+
+- **Trigon-6** : 30 réglages sont reliés d'avance, vérifiés sur la machine (le Trigon-6 ne reçoit qu'une partie de ses réglages en CC). Les autres sont grisés : clique un réglage grisé, puis touche le même sur le synthé, et l'app repère où il est rangé. Il s'affiche alors, et devient pilotable s'il existe un CC pour lui. ⌥ clic pour oublier un lien.
+- **Prophet-6** : les réglages viennent du manuel (NRPN et CC). Au premier affichage, le bouton « Vérifier sur le synthé » les teste un par un sur la machine (valeur de test, relecture, puis retour au son d'origine) et n'affiche que ceux qui sont confirmés.
 
 Un device **Max for Live** affiche aussi le preset en cours dans Ableton Live, et ouvre l'application.
 
@@ -59,12 +73,13 @@ SP_DATA_DIR=/tmp/essai "/Applications/Sequential Librarian.app/Contents/MacOS/Se
 
 | Dossier | Contenu |
 | :- | :- |
-| `web/` | Interface : `index.html`, `css/`, et `js/` découpé par rôle (`sysex.js` format SysEx, `midi.js` échanges, `live.js` son en cours, `actions.js` écriture, `panel.js` façade, `render.js` affichage…) |
+| `web/` | Interface : `index.html`, `css/`, et `js/` découpé par rôle (`sysex.js` format SysEx, `midi.js` échanges, `live.js` son en cours, `actions.js` écriture, `reorder.js` réorganisation, `panel-layouts.js` dessin des façades, `panel.js` façade, `panel-check.js` vérification des réglages, `render.js` affichage…) |
 | `macos/` | Application Mac (Swift) : fenêtre, pont MIDI CoreMIDI vers l'interface, accès aux fichiers |
 | `m4l/` | Device Max for Live : logique (`device.js`) et bouton d'ouverture de l'app (`launch.js`) |
 | `scripts/` | Construction (`build_app.py`, `build_device.py`) et lecture de la configuration (`config.py`) |
 | `tools/` | Serveur de développement pour Chrome |
 | `tests/` | Tests automatiques |
+| `docs/screenshots/` | Captures d'écran du README |
 | `assets/icon/` | Icône : `icon.svg` (source) et `icon-1024.png` (export) |
 
 ## Notes techniques
