@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sequential Librarian</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2316171a'/><path d='M5 16c3-8 6-8 9 0s6 8 9 0' stroke='%233b8eea' stroke-width='2.6' fill='none' stroke-linecap='round'/></svg>">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0V8ZM12 18v4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8L7 4Z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-read" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5V3Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol>
+  <radialGradient id="capg" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#3a3d44"/><stop offset="1" stop-color="#1b1d21"/></radialGradient>
+</svg>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 32 32"><path d="M4 16c3-9 6.5-9 9.5 0s6.5 9 9.5 0" stroke="#3b8eea" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></div>
+      <div><b>Sequential</b><span>Librarian</span></div>
+    </div>
+
+    <div class="sect"><h3>Synthé</h3><div id="synthList"></div></div>
+
+    <div class="sect">
+      <h3>Connexion</h3>
+      <div class="row2">
+        <button class="btn" id="btnConnect"><svg class="i"><use href="#i-plug"/></svg>Connecter</button>
+        <button class="btn" id="btnDemo"><svg class="i"><use href="#i-play"/></svg>Démo</button>
+      </div>
+      <div class="connbox" id="connBox">
+        <label>Entrée MIDI</label><select id="selIn"></select>
+        <label>Sortie MIDI</label><select id="selOut"></select>
+        <button class="btn primary" id="btnInquiry">Vérifier la connexion</button>
+        <div class="hint">Sur le synthé : <b>GLOBALS</b> (rangée du haut), bouton <b>8 · MIDI SysEx</b> réglé sur <b>USB</b>.</div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <h3>Lire le synthé</h3>
+      <button class="btn full" id="btnReadAll" disabled><svg class="i"><use href="#i-read"/></svg>Tout relire<span class="kbd">0–9</span></button>
+      <button class="btn full" id="btnReadBank" disabled>Cette banque<span class="kbd" id="kbdBank">0</span></button>
+      <div class="hint">Tout est relu automatiquement à la connexion (quelques secondes).</div>
+      <div class="progress" id="progress">
+        <div class="top"><span id="progressText"></span><button class="btn ghost sm" id="btnCancel"><svg class="i"><use href="#i-stop"/></svg>Arrêter</button></div>
+        <div class="bar"><div></div></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <h3>Sauvegarde</h3>
+      <button class="btn full" id="btnBackup" disabled><svg class="i"><use href="#i-down"/></svg><span id="backupLabel">Fichier .syx</span></button>
+    </div>
+
+    <div class="sect"><h3>Mémoire</h3><div class="stats" id="stats"></div></div>
+
+    <div class="hint foot" id="footHint"></div>
+  </aside>
+
+  <main class="center">
+    <div class="topbar">
+      <div class="title"><h1 id="title">Trigon-6</h1><p id="subtitle"></p></div>
+      <div class="now" id="now"></div>
+      <div class="search"><svg class="i"><use href="#i-search"/></svg><input type="text" id="search" placeholder="Chercher un preset…" autocomplete="off"></div>
+    </div>
+    <div class="banner bad" id="alertBanner"></div>
+    <div class="banner demo" id="demoBanner"><b>Mode démo</b> · synthé simulé, rien n'est enregistré dans Obsidian. <a id="demoOverwrite">Simuler l'écrasement d'un preset protégé</a></div>
+    <div class="banks" id="banks"></div>
+    <div class="grid" id="grid"></div>
+    <div class="panel" id="panel"></div>
+    <div class="results" id="results"></div>
+    <div class="legend">
+      <span><i style="background:var(--bg);border:1px solid var(--line2)"></i>Pas encore lu</span>
+      <span><i style="background:var(--green)"></i>En cours sur le synthé</span>
+      <span><i style="background:var(--amber)"></i>Protégé</span>
+      <span><i style="background:var(--red)"></i>Protégé mais modifié</span>
+      <span><i style="background:var(--amber);border-radius:50%"></i>Changé depuis la lecture précédente</span>
+      <span><i style="background:var(--accent)"></i>Alias défini dans l'app</span>
+      <span><code style="font-family:var(--mono);color:var(--faint);margin-right:5px">usine</code>identique au preset d'usine</span>
+    </div>
+  </main>
+
+  <section class="inspector" id="detail"></section>
+</div>
+
+<div class="modal" id="modal"><div class="dialog"><h2 id="mTitle"></h2><div class="body" id="mBody"></div><div class="btns"><button class="btn" id="mCancel">Annuler</button><button class="btn primary" id="mOk"></button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="js/core.js"></script>
+<script src="js/db.js"></script>
+<script src="js/sysex.js"></script>
+<script src="js/midi.js"></script>
+<script src="js/live.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/connection.js"></script>
+<script src="js/library.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

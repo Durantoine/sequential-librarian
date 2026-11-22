@@ -1,0 +1,10 @@
+# Réglages locaux (chemin du vault) : jamais publiés
+config.json
+
+# Fichiers générés
+m4l/*.amxd
+*.syx
+*.tmp
+__pycache__/
+.DS_Store
+build/
