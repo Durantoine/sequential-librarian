@@ -7,7 +7,7 @@ Ces synthés ne permettent pas de nommer ni de ranger facilement leurs 1000 prog
 - voir les 1000 presets d'un coup d'œil, avec leur nom et un type (pad, lead, basse…) ;
 - charger un preset sur le synthé d'un clic ;
 - **protéger** les presets importants : alerte s'ils sont écrasés, export de la version protégée en `.syx` ;
-- **renommer** un preset directement sur le synthé (Trigon-6) ;
+- **renommer** un preset directement sur le synthé ;
 - **sauver** le son en cours, avec ses réglages modifiés, dans l'emplacement de son choix (copie `.syx` de l'ancien contenu avant chaque écriture, puis relecture pour vérifier) ;
 - **réorganiser** les banques par glisser-déposer : échanger deux presets, ou en insérer un en décalant les autres ;
 - afficher la **façade** du synthé avec les potards du son en cours, synchronisée dans les deux sens ;
@@ -15,7 +15,11 @@ Ces synthés ne permettent pas de nommer ni de ranger facilement leurs 1000 prog
 
 ![Grille des presets](docs/screenshots/grille.png)
 
-![Façade du Trigon-6](docs/screenshots/facade.png)
+| Façade du Trigon-6 | Façade du Prophet-6 |
+| :-: | :-: |
+| ![Façade du Trigon-6](docs/screenshots/facade-trigon6.png) | ![Façade du Prophet-6](docs/screenshots/facade-prophet6.png) |
+
+![Réorganisation par glisser-déposer](docs/screenshots/reorganiser.png)
 
 _Captures en mode démo (synthé simulé)._
 
